@@ -1,10 +1,13 @@
+"""
+Command line tool for checking Python 3 depencies publish date
+"""
 import os
 import json
 import requests
 
 import argparse
 
-from typing import Set, Dict
+from typing import Set, Dict, Generator
 
 from pkg_resources import parse_version
 
@@ -27,6 +30,11 @@ session = requests.Session()
 
 
 def get_packet_info(package_name: str) -> Dict:
+    """
+    Getting package releases info from pypi
+    :param package_name: package name
+    :return: releases list
+    """
 
     result = session.get(
         url=f'https://pypi.org/pypi/{package_name}/json'
@@ -39,7 +47,12 @@ def get_packet_info(package_name: str) -> Dict:
 
 
 def get_safe_releases(package_name: str, date: datetime) -> Dict:
-
+    """
+    Filtering releases list from published after unsafe date
+    :param package_name: package name
+    :param date: date
+    :return: safe releases list
+    """
     safe_version = set()
 
     for version, info_list in get_packet_info(package_name).items():
@@ -55,15 +68,21 @@ def get_safe_releases(package_name: str, date: datetime) -> Dict:
     return tuple(safe_version)
 
 
-
 def get_default_date():
-
+    """
+    Setting default safe date: 23.02.2022
+    :return: datetime_obj(23.02.2022)
+    """
     return datetime.strptime('2022-02-23', '%Y-%m-%d') \
-           + timedelta(hours=23, minutes=59, seconds=59)
+        + timedelta(hours=23, minutes=59, seconds=59)
 
 
-def parse_date(date: str = '2022-02-23') -> datetime.date:
-
+def parse_date(date: str = '2022-02-23') -> datetime:
+    """
+    Parsing date from command line
+    :param date: date
+    :return: datetime_obj
+    """
     date_obj = None
 
     for regexp in ('%d/%m/%Y', '%d.%m.%Y', '%d-%m-%Y',
@@ -87,8 +106,12 @@ def parse_date(date: str = '2022-02-23') -> datetime.date:
         return date
 
 
-def read_file(path: str):
-
+def read_file(path: str) -> Generator[str]:
+    """
+    Reading requirements from file line by line
+    :param path: path to requirements.txt file
+    :return: lines list
+    """
     if not os.path.exists(path):
         raise FileNotFoundError(f'File not found by this path: {path}')
 
@@ -105,10 +128,15 @@ def read_file(path: str):
                 yield line
 
 
-def parse_deps_from_file(path: str = 'requirements.txt', date: datetime = None) -> Set[Dict[str, str]]:
-
-    deps_dict = []
-
+def parse_deps_from_file(
+        path: str = 'requirements.txt',
+        date: datetime = None) -> Set[Dict[str, str]]:
+    """
+    Parsing deps from file with finding safe releases list from pypi.org
+    :param path: path to requirements.txt file
+    :param date: safe date object
+    :return: safe releases list
+    """
     for i, line in enumerate(read_file(path)):
         line = line.rstrip()
 
@@ -125,7 +153,8 @@ def parse_deps_from_file(path: str = 'requirements.txt', date: datetime = None) 
                     key: {
                         'version': value,
                         'splitter': splitter,
-                        'safe_releases': sorted(get_safe_releases(key, date), key=parse_version)
+                        'safe_releases': sorted(
+                            get_safe_releases(key, date), key=parse_version)
                     }
                 }
 
@@ -136,13 +165,16 @@ def parse_deps_from_file(path: str = 'requirements.txt', date: datetime = None) 
         yield line_dict
 
 
-def check_deps(args):
-
+def check_deps(arguments):
+    """
+    Checking packages to be safe
+    :param arguments: arguments from command line
+    """
     exceptions = 0
 
     new_package_list = []
 
-    for package in parse_deps_from_file(args.path, args.date):
+    for package in parse_deps_from_file(arguments.path, arguments.date):
 
         for name, info in package.items():
 
@@ -153,29 +185,38 @@ def check_deps(args):
                 if not args.handle:
 
                     logger.error(
-                        'User requested unsafe version for package {name}{splitter}{version}, last safe version: {safe_version}'.format(
-                            name=name, safe_version=info['safe_releases'][-1], **info
+                        'User requested unsafe version '
+                        'for package {name}{splitter}{version}, '
+                        'last safe version: {safe_version}'.format(
+                            name=name,
+                            safe_version=info['safe_releases'][-1],
+                            **info
                         )
                     )
 
                     exceptions += 1
                 else:
                     logger.warning(
-                        'Changing version for package {name} from {version} to last safe: {safe_version}'.format(
-                            name=name, safe_version=safe_version, version=package[name]['version'])
+                        'Changing version '
+                        'for package {name} from {version} '
+                        'to last safe: {safe_version}'.format(
+                            name=name,
+                            safe_version=safe_version,
+                            version=package[name]['version']
+                        )
                     )
 
                     package[name]['version'] = safe_version
 
             new_package_list.append(package)
 
-    if exceptions and not args.handle:
+    if exceptions and not arguments.handle:
 
         sys.exit(2)
 
-    elif args.handle:
+    elif arguments.handle:
 
-        path = args.path
+        path = arguments.path
 
         if not os.path.exists(path):
             raise FileNotFoundError(f'File not found by this path: {path}')
