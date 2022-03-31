@@ -107,7 +107,7 @@ def parse_date(date: str = '2022-02-23') -> datetime:
         return date
 
 
-def read_file(path: str) -> Generator[str]:
+def read_file(path: str) -> Generator:
     """
     Reading requirements from file line by line
     :param path: path to requirements.txt file
