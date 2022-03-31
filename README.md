@@ -11,7 +11,7 @@ alias pydep-check='$(which python3) -m pydep-check'
 
 ```
 pydep-check --help
-usage: depcheck [-h] [-p PATH] [-d DATE] [--handle HANDLE]
+usage: pydep-check [-h] [-p PATH] [-d DATE] [--handle HANDLE]
 
 Command line tool for checking Python 3 depencies publish date
 
