@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
 Command line tool for checking Python 3 depencies publish date
 """
