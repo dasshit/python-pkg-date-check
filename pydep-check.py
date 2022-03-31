@@ -201,7 +201,6 @@ def check_deps(args):
             file.write(text)
 
 
-
 parser = argparse.ArgumentParser(
     prog='pydep-check',
     description='Command line tool '
