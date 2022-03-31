@@ -1,0 +1,6 @@
+venv
+.idea
+.Idea
+__pycache__
+project/__pycache__
+venv/bin venv/lib venv/pyvenv.cfg
